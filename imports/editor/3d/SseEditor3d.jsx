@@ -203,13 +203,15 @@ export default class SseEditor3d extends React.Component {
 
     createObject() {
         let points;
+        let objId = Number(Math.random().toString().substr(3,length) + Date.now()).toString(36);
+
         if (this.selection.size > 0)
             points = this.selection;
         else if (this.viewFilterState === "points")
             points = this.visibleIndices;
         if (points) {
 
-            const obj = {id: 1, classIndex: this.activeClassIndex, points: Array.from(points)};
+            const obj = {id: objId, classIndex: this.activeClassIndex, points: Array.from(points)};
             this.objects.add(obj);
 
             this.sendMsg("objects-update", {value: this.objects});
@@ -2009,7 +2011,7 @@ export default class SseEditor3d extends React.Component {
     saveAll() {
         this.saveBinaryLabels();
         this.saveBinaryObjects();
-        this.saveMeta();
+        // this.saveMeta();
     }
 
     saveMeta() {
@@ -2046,7 +2048,7 @@ export default class SseEditor3d extends React.Component {
         this.loadPCDFile(fileUrl)
         .then(() => {
 
-            // this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
+            this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
             
             this.sendMsg("bottom-right-label", {message: "Loading labels..."});
             this.dataManager.loadBinary(this.props.imageId, 'cloudData')
