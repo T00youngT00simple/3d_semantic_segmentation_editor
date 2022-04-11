@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 
-let baseUrl = 'http://localhost:8000';
+let baseUrl = 'http://192.168.1.30:8000';
 // 创建axios实例
 const service = axios.create({
     baseURL: baseUrl, // api的base_url

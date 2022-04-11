@@ -1,5 +1,5 @@
 
- let baseUrl = 'http://localhost:8000';
+ let baseUrl = 'http://192.168.1.30:8000';
 //  const iconfontVersion = ['567566_r22zi6t8noas8aor']
 //  const iconfontUrl = `//at.alicdn.com/t/font_$key.css`
 //  const codeUrl = `${baseUrl}/code`
