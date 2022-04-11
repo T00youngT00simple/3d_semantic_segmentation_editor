@@ -1,9 +1,10 @@
 import axios from 'axios'
 
 
+let baseUrl = 'http://localhost:8000';
 // 创建axios实例
 const service = axios.create({
-    baseURL: process.env.BASE_API, // api的base_url
+    baseURL: baseUrl, // api的base_url
     withCredentials: true, // 允许携带cookie
     timeout: 50000, // 请求超时时间 
 })

@@ -1,8 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './App.js'
-// import {renderRoutes} from './routes.jsx';
-
+import {App} from './main.jsx';
 
 ReactDOM.render(
     <App/>, document.getElementById('app-content')

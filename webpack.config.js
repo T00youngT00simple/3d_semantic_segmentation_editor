@@ -21,6 +21,18 @@ module.exports = {
         use: {
           loader: 'html-loader'
         }
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.scss$/,
+        use: ['style-loader', 'css-loader', 'sass-loader']
+      },
+      {
+        test: /\.less$/,
+        use: ['style-loader', 'css-loader', 'less-loader']
       }
     ]
   },
@@ -29,7 +41,7 @@ module.exports = {
       titel: 'react app',
       filename: 'index.html',
       template: './src/index.html'
-    })
+    }),
   ],
   resolve: {
     extensions: ['.js', '.jsx', '.json']

@@ -4,8 +4,9 @@ import * as THREE from 'three';
 import {BoxHelper} from './GradientBoxHelper';
 import SseGlobals from "../../common/SseGlobals";
 import SsePCDLoader from "./SsePCDLoader";
-import OrbitControls from "./tools/OrbitControls.js"
+import SseOrbitControls from "./tools/SseOrbitControls.js"
 import Sse3dLassoSelector from "./tools/Sse3dLassoSelector";
+import {PCDLoader} from 'three/examples/jsm/loaders/PCDLoader'
 import PointInPoly from "point-in-polygon-extended";
 import TWEEN from "@tweenjs/tween.js";
 import Sse3dRectangleSelector from "./tools/Sse3dRectangleSelector";
@@ -31,8 +32,6 @@ export default class SseEditor3d extends React.Component {
     constructor() {
         super();
         SseMsg.register(this);
-        new SsePCDLoader(THREE);
-        new OrbitControls(THREE);
 
         this.autoFilterMode = false;
         this.globalBoxMode = true;
@@ -87,7 +86,8 @@ export default class SseEditor3d extends React.Component {
     }
 
     render() {
-        return (<div className="absoluteTopLeftZeroW100H100">
+        return (
+            <div className="absoluteTopLeftZeroW100H100">
                 <canvas id="canvas3d" className="absoluteTopLeftZeroW100H100">
                 </canvas>
                 <canvas id="canvasSelection" className="absoluteTopLeftZeroW100H100"></canvas>
@@ -454,8 +454,6 @@ export default class SseEditor3d extends React.Component {
 
         this.onMsg("tagsChanged", () => this.saveAll());
 
-        this.onMsg("downloadFile", () => this.downloadFile());
-        this.onMsg("downloadText", () => this.downloadText());
         this.onMsg("color-boost", (arg => {
             this.colorBoost = arg.value;
             this.invalidateColor();
@@ -470,14 +468,6 @@ export default class SseEditor3d extends React.Component {
         this.canvasContainer.removeEventListener("mousemove", this.mouseMove.bind(this), false);
         this.canvasContainer.removeEventListener("mouseup", this.mouseUp.bind(this), false);
         this.canvasContainer.removeEventListener("wheel", this.mouseWheel.bind(this), false);
-    }
-
-    downloadFile() {
-        window.open("/api/pcdfile" + this.props.imageUrl, "_blank");
-    }
-
-    downloadText() {
-        window.open("/api/pcdtext" + this.props.imageUrl, "_blank");
     }
 
     init() {
@@ -532,15 +522,11 @@ export default class SseEditor3d extends React.Component {
 
         this.camera.up.set(0, -1, 0);
 
-        this.orbiter = new OrbitControls(this, this.camera, this.canvasContainer, this);
+        this.orbiter = SseOrbitControls(this, this.camera, this.canvasContainer, this);
 
-        // setting up OrbitControls, see the official doc for more details
-        // https://threejs.org/docs/#examples/en/controls/OrbitControls
-        
-        // enable panning and keyboard controls
         this.orbiter.enablePan = true;
         this.orbiter.enableKeys = true;
-        // set pan button to null, default is RMB, but that's used for labeling
+
         this.orbiter.mouseButtons = {ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: null};
 
         this.orbiter.addEventListener("start", this.orbiterStart.bind(this), false);
@@ -1978,76 +1964,56 @@ export default class SseEditor3d extends React.Component {
     loadPCDFile(fileUrl) {
         setTimeout(()=>
         this.sendMsg("bottom-right-label", {message: "Loading PCD data..."}), 1);
-        const loader = new SsePCDLoader();
+
+        let myLoader = SsePCDLoader(PCDLoader);
+        let loader = new myLoader();
+
         return new Promise((res) => {
             loader.load(fileUrl, (arg) => {
                 this.display(arg.object, arg.position, arg.label, arg.rgb);
                 Object.assign(this.meta, {header: arg.header});
                 res();
-            });
+            });  
         });
     }
 
-    getSocObj(obj) {
-        let activeClassesSets = this.activeSoc || this.props.classesSets[0];
-
-        if (obj.classIndex) {
-            return (activeClassesSets.descriptors.find(objDesc => objDesc.classIndex == obj.classIndex))
-        }else if (obj.labelName) {
-            return (activeClassesSets.descriptors.find(objDesc => objDesc.label == obj.labelName))
-        } 
-    }
-
-    saveBinary() {
-        let cloudData = [];
+    saveBinaryLabels() {
+        let cloudData = {};
         let hasSelectedLabelName = [];
 
+        let activeClassesSets = this.activeSoc || this.props.classesSets[0];
+
         this.cloudData.forEach((pt, pos) => {
-            let socObj = this.getSocObj(pt);
+            let socObj = activeClassesSets.descriptors.find(objDesc => objDesc.classIndex == pt.classIndex)
 
             if (socObj && socObj.classIndex != 0 && pt.classIndex == socObj.classIndex){
                 let socObjLabel = socObj.label;
 
                 if (!hasSelectedLabelName.find(labelName => labelName == socObjLabel)){
                     hasSelectedLabelName.push(socObjLabel);
-                    cloudData.push({
-                        labelName: socObjLabel,
-                        points: [pos]})
+                    cloudData[socObjLabel] = [pos];
 
                 }else {
-                    let cloudDataObj = cloudData.find(cloudDataObj => cloudDataObj.labelName == socObjLabel);
-                    cloudDataObj.points.push(pos);
+                    cloudData[socObjLabel].push(pos);
                 }
             }
         });
 
-        console.log(Array.from(this.objects));
+        this.dataManager.saveBinary(this.props.imageId , cloudData, 'cloudData');
+    }
 
-        let objects = Array.from(this.objects).map(object => {
-            let socObjLabelName = this.getSocObj(object).label;
-
-            if (!hasSelectedLabelName.find(labelName => labelName == socObjLabelName)){
-                hasSelectedLabelName.push(socObjLabelName);
-            }
-
-            return {
-                id: object.id,
-                labelName: socObjLabelName,
-                points: object.points
-            }
-        })
-
-        cloudData = [...cloudData, ...objects];
-        cloudData.push({
-            labelNum: hasSelectedLabelName.length
-        })
-        
-        // get taskId
-        this.dataManager.saveResult(this.props.taskId, cloudData);
+    saveBinaryObjects() {
+        this.dataManager.saveBinary(this.props.imageId, Array.from(this.objects), 'objectData');
     }
 
     saveAll() {
-        this.saveBinary();
+        this.saveBinaryLabels();
+        this.saveBinaryObjects();
+        this.saveMeta();
+    }
+
+    saveMeta() {
+        postSample(this.props.imageId, this.meta).then()
     }
 
     initDone(){
@@ -2076,56 +2042,38 @@ export default class SseEditor3d extends React.Component {
 
         this.sendMsg("currentSample", {data: this.meta});
 
-        // const fileUrl = SseGlobals.getFileUrl(this.props.imageUrl);
         const fileUrl = this.props.imageUrl;
+        this.loadPCDFile(fileUrl)
+        .then(() => {
 
-        // in loadPCDFile 
-        this.loadPCDFile(fileUrl).then(() => {
-
-            this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
+            // this.rotateGeometry(this.meta.rotationX, this.meta.rotationY, this.meta.rotationZ);
             
             this.sendMsg("bottom-right-label", {message: "Loading labels..."});
-
             this.dataManager.loadBinary(this.props.imageId, 'cloudData')
                 .then(result => {
 
-                    let data = result.data.data;
-
                     let cloudData = [];
-                    let objectDataRes = data.filter(obj => obj.id);
-                    let cloudDataRes = data.filter(obj => !obj.id && !obj.labelNum);
-
                     let labelArray = this.cloudData.map(x => x.classIndex);
 
-                    objectDataRes = objectDataRes.map((objectDataObj) => {
-                        let socObjClassIndex = this.getSocObj(objectDataObj).classIndex;
+                    let activeClassesSets = this.activeSoc || this.props.classesSets[0];
 
-                        return {
-                            id: objectDataObj.id,
-                            classIndex: socObjClassIndex,
-                            points: objectDataObj.points
-                        }
-                    })
+                    for ( var labelName in result.cloudData ) {
+                        let socObjClassIndex = activeClassesSets.descriptors.find(objDesc => objDesc.label == labelName).classIndex;
 
-                    cloudDataRes.forEach((cloudDataObj) => {
-                        let socObjClassIndex = this.getSocObj(cloudDataObj).classIndex;
-                    
-                        cloudDataObj.points.forEach((item) => {
+                        result.cloudData[labelName].forEach((item) =>{
                             cloudData.push({
                                 classIndex: socObjClassIndex,
                                 index: item
                             })
                         })
-                    })
-
+                    }
+                    
                     cloudData.forEach((cloudDataObj) => {
                         labelArray[cloudDataObj.index] = cloudDataObj.classIndex
                     })
 
                     this.sendMsg("bottom-right-label", {message: "Loading objects..."});
                     this.labelArray = labelArray;
-                    this.objectData = objectDataRes;
-                    
                     this.maxClassIndex = 0;
                     for (var i = 0; i < this.labelArray.length; i++) {
                         if (this.labelArray[i] > this.maxClassIndex) {
@@ -2133,14 +2081,19 @@ export default class SseEditor3d extends React.Component {
                         }
                     }
                     this.sendMsg("maximum-classIndex", {value: this.maxClassIndex});
-                
                 }, () => {
-                    this.saveBinary();
+                    this.saveBinaryLabels();
                 }).then(() => {
-                    this.display(this.objectData, this.positionArray, this.labelArray, this.rgbArray).then(() => {
-                    this.initDone();
-                })
-
+                    this.dataManager.loadBinary(this.props.imageId, 'objectData').then(result => {
+                        if (!result.objectData.forEach)
+                            result = undefined;
+                        this.display(result.objectData, this.positionArray, this.labelArray, this.rgbArray).then( ()=>{
+                            this.initDone();
+                        });
+                    }, () => {
+                        this.initDone();
+                    }
+                );
             });
         });
     }

@@ -1,6 +1,6 @@
 import FIC from "fastintcompression";
 import SseMsg from "./SseMsg";
-import { detailSaveResult, commitSaveResult } from "../../api/segmentation"
+import { postCloudDataDetail, postObjectDataDetail } from "../../api/segmentation"
 import { baseUrl } from '../../config/env'
 
 export default class SseDataManager {
@@ -101,33 +101,32 @@ export default class SseDataManager {
     }
 
 
-    saveResult(taskId, cloudData) {
-        let urlType = 'tagging-task'
-        let taskCommitDto = {
-            data: cloudData,
-            taskId: taskId,
-            level: 0,
-            weight: 0
-        }
-        
+    saveBinary(imageId, data, method) {
         const worker = new Worker("/SseDataWorker.js");
         worker.addEventListener("message", (arg) => {
             worker.terminate();
 
-            detailSaveResult(taskCommitDto, urlType);
-            commitResult(taskCommitDto, urlType);
+            if (method && method == 'cloudData')
+            {
+                postCloudDataDetail(imageId, data);
+            } else if (method && method == 'objectData'){
+                postObjectDataDetail(imageId, data);
+            }
 
         });
-        // worker.postMessage({operation: "compress", cloudData});
+        worker.postMessage({operation: "compress", data});
     }
 
     loadBinary(imageId, method) {
         const worker = new Worker("/SseDataWorker.js");
 
-        let url = `${baseUrl}/image/${imageId}/object/data/`;
+        let url = `${baseUrl}/image/${imageId}/cloud/data/`;
 
- 
-       const oReq = new XMLHttpRequest();
+        if (method && method == 'objectData'){
+            url = `${baseUrl}/image/${imageId}/object/data/`;
+        }
+
+        const oReq = new XMLHttpRequest();
 
         oReq.responseType = "arraybuffer";
         oReq.open("GET", url, true);

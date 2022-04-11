@@ -1,8 +1,6 @@
 import React from 'react';
 import {Button, Dialog, IconButton} from '@material-ui/core';
-import * as ChevronRight from 'mdi-material-ui';
-import * as Eye from 'mdi-material-ui';
-import * as EyeOff from 'mdi-material-ui';
+import {ChevronRight, Eye, EyeOff} from 'mdi-material-ui';
 import * as MDI from 'mdi-material-ui';
 import SseGlobals from './SseGlobals';
 import SseToolbar from "./SseToolbar";
@@ -10,7 +8,7 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 
-export default class SseClassChooser extends SseToolbar {
+class SseClassChooser extends SseToolbar {
 
     constructor(props) {
         super();
@@ -141,29 +139,34 @@ export default class SseClassChooser extends SseToolbar {
     }
 
     renderDialog() {
-        return (<Dialog open={this.state.mode == "set-chooser"}>
-            <DialogTitle>Sets of Object Classes</DialogTitle>
-            <DialogContent>
-                <div className="vflex">
-                    <span>Choose which set to use:</span>
-                    <div className="hflex w100 wrap">
-                        {this.classesSets.map((cset) => (
-                            <Button
-                                onClick={(e) => this.changeClassesSet(cset.name)}
-                                key={cset.name}>{cset.name + (cset.name == this.state.soc.name ? " (current)" : "")}</Button>
-                        ))
-                        }
-                    </div>
-                </div>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={() => {
-                    this.setState({mode: "normal"})
-                }} color="primary">
-                    Cancel
-                </Button>
-            </DialogActions>
-        </Dialog>)
+        if (this.props.classesSets.length == 0) {
+            return null;
+        }else {
+            return (
+                <Dialog open={this.state.mode == "set-chooser"}>
+                    <DialogTitle>Sets of Object Classes</DialogTitle>
+                    <DialogContent>
+                        <div className="vflex">
+                            <span>Choose which set to use:</span>
+                            <div className="hflex w100 wrap">
+                                {this.props.classesSets.map((cset) => (
+                                    <Button
+                                        onClick={(e) => this.changeClassesSet(cset.name)}
+                                        key={cset.name}>{cset.name + (cset.name == this.props.classesSets[0].name ? " (current)" : "")}</Button>
+                                ))
+                                }
+                            </div>
+                        </div>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => {
+                            this.setState({mode: "normal"})
+                        }} color="primary">
+                            Cancel
+                        </Button>
+                    </DialogActions>
+                </Dialog>)
+        }
     }
 
     initSetChange() {
@@ -173,54 +176,73 @@ export default class SseClassChooser extends SseToolbar {
     render() {
         const smallIconStyle = {width: "25px", height: "25px", color: "darkgray"};
         const smallIconSelected = {width: "25px", height: "25px", color: "red"};
-        return (
 
-            <div className="sse-class-chooser vflex scroller"
-                 style={{"backgroundColor": "#393536", "padding": "5px 5px 0 0"}}>
-                {this.state.soc.descriptors.map((objDesc, idx) => {
-                    const isSelected = objDesc.classIndex == this.state.activeClassIndex;
-                    return <div className="hflex flex-align-items-center no-shrink" key={objDesc.label}>
-                        <ChevronRight className="chevron" color={isSelected ? "primary" : "disabled"}/>
-                        <Button className="class-button"
-                                onDoubleClick={() => this.sendMsg("class-multi-select", {name: objDesc.label})}
-                                onClick={() => {
-                                    this.sendMsg('classSelection', {descriptor: objDesc});
-                                }}
-                                style={
-                                    {
-                                        "width": "100%",
-                                        "minHeight": "20px",
-                                        "margin": "1px",
-                                        "backgroundColor": objDesc.color,
-                                        "color": SseGlobals.computeTextColor(objDesc.color),
-                                        "border": isSelected ? "solid 1px #E53935" : "solid 1px black",
-                                        "padding": "0 3px"
-                                    }}>
-                            <div
-                                className="hflex flex-align-items-center w100">
-                                {this.getIcon(objDesc)}{objDesc.label}
-                            </div>
-                            <sup>{this.state.counters[objDesc.classIndex] > 0 ? this.state.counters[objDesc.classIndex] : ""}</sup>
-                        </Button>
-                        {this.props.mode == "3d" ?
-                            <div className="hflex">
-                                <IconButton
-                                    onClick={() => this.muteOrSolo("mute", objDesc, idx)}
-                                    style={this.state["mute" + idx] ? smallIconSelected : smallIconStyle}>
-                                    <EyeOff/>
-                                </IconButton>
-                                <IconButton
-                                    onClick={() => this.muteOrSolo("solo", objDesc, idx)}
-                                    style={this.state["solo" + idx] ? smallIconSelected : smallIconStyle}>
-                                    <Eye/>
-                                </IconButton>
+        if (this.props.classesSets.length == 0) {
+            return null;
 
-                            </div> : null}
-                    </div>
-                })}
-                <Button onClick={() => this.initSetChange()}>Classes Sets</Button>
-                {this.renderDialog()}
-            </div>
-        );
+        } else {
+            this.props.classesSets.map(cset => {
+                this.classesSetByName.set(cset.name, cset)
+            });
+            
+            return (
+    
+                <div className="sse-class-chooser vflex scroller" style={{"backgroundColor": "#393536", "padding": "5px 5px 0 0"}}>
+
+                    {
+                        this.state.soc.descriptors.map((objDesc, idx) => {
+                            const isSelected = objDesc.classIndex == this.state.activeClassIndex;
+
+                            return (
+                                <div className="hflex flex-align-items-center no-shrink" key={objDesc.label}>
+                                    <ChevronRight className="chevron" color={isSelected ? "primary" : "disabled"}/>
+                                    <Button className="class-button"
+                                            onDoubleClick={() => this.sendMsg("class-multi-select", {name: objDesc.label})}
+                                            onClick={() => {
+                                                this.sendMsg('classSelection', {descriptor: objDesc});
+                                            }}
+                                            style={
+                                                {
+                                                    "width": "100%",
+                                                    "minHeight": "20px",
+                                                    "margin": "1px",
+                                                    "backgroundColor": objDesc.color,
+                                                    "color": SseGlobals.computeTextColor(objDesc.color),
+                                                    "border": isSelected ? "solid 1px #E53935" : "solid 1px black",
+                                                    "padding": "0 3px"
+                                                }}>
+                                        <div
+                                            className="hflex flex-align-items-center w100">
+                                            {this.getIcon(objDesc)}{objDesc.label}
+                                        </div>
+                                        <sup>{this.state.counters[objDesc.classIndex] > 0 ? this.state.counters[objDesc.classIndex] : ""}</sup>
+                                    </Button>
+
+                                    {this.props.mode == "3d" ?
+                                        <div className="hflex">
+                                            <IconButton
+                                                onClick={() => this.muteOrSolo("mute", objDesc, idx)}
+                                                style={this.state["mute" + idx] ? smallIconSelected : smallIconStyle}>
+                                                <EyeOff/>
+                                            </IconButton>
+                                            <IconButton
+                                                onClick={() => this.muteOrSolo("solo", objDesc, idx)}
+                                                style={this.state["solo" + idx] ? smallIconSelected : smallIconStyle}>
+                                                <Eye/>
+                                            </IconButton>
+                                        </div> : null}
+                                </div>
+                            );
+                        })
+
+                    }
+                    <Button onClick={() => this.initSetChange()}>Classes Sets</Button>
+                    {this.renderDialog()}
+                </div>
+            );
+        }
+
     }
 }
+
+export default SseClassChooser;

@@ -112,7 +112,7 @@ class SseBottomBar extends React.Component {
                             />
                             <div className="m5-bottom m5-top">Tags previously used</div>
                             <div className="hflex w100 wrap">
-                                {this.props.allTags.map(t => (
+                                {this.props.allTags && this.props.allTags.map(t => (
                                     <div
                                         onClick={() => this.addTag(t)}
                                         key={t}
@@ -135,16 +135,3 @@ class SseBottomBar extends React.Component {
 }
 
 export default SseBottomBar;
-
-//     Meteor.subscribe("sse-props");
-//     const aps = SseProps.find().fetch();
-//     const appProps = _.indexBy(aps, "key");
-//     if (!appProps.tags)
-//         appProps.tags = {value: []};
-
-//     console.log("appProps");
-//     console.log(appProps);
-    
-
-//     return {appProps};
-// })(SseBottomBar);

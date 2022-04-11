@@ -12,29 +12,20 @@ import SseCameraToolbar from "./SseCameraToolbar";
 import SseEditor3d from "./SseEditor3d";
 import SseObjectToolbar from "./SseObjectToolbar";
 import SseToolbar3d from "./SseToolbar3d";
-import SseTooltips3d from "./SseTooltips3d";
 
 import { getImageInfoDetail, getTagList, getSample, getClassesSets } from "../../../api/segmentation"  
+
+import "./styles/layout.scss"
+import "./styles/main.scss"
+import "./styles/tippy.scss"
 
 export default class SseApp3d extends React.Component {
 
     constructor() {
         super();
 
-        this.state = {
-            imageUrl: null,
-            allTags: [],
-            sample: null,
-        };
-
+        this.state = {};
         this.classesSets = [];
-        // Meteor.call("getClassesSets", (err, res) => {
-
-        //     console.log(res);
-
-        //     this.classesSets = res.map(cset => new SseSetOfClasses(cset));
-        //     this.setState({classesReady: true});
-        // });
     }
 
     setupTooltips() {
@@ -77,11 +68,11 @@ export default class SseApp3d extends React.Component {
     }
 
     render() {
-        if (!this.state.classesReady || !this.state.imageUrl || !this.state.allTags || !this.state.sample)
+        if (!this.state.classesReady || !this.state.imageUrl || !this.state.allTags || !this.state.sample || !this.props.imageId)
             return null;
+
         return (
             <div className="w100 h100">
-                <SseTooltips3d/>
                 <MuiThemeProvider
                     theme={new SseTheme().theme}>
                     <div className="w100 h100 editor">
@@ -90,13 +81,10 @@ export default class SseApp3d extends React.Component {
                             <div className="hflex grow box2 h0">
                                 <SseClassChooser
                                     mode="3d"
-                                    classesSets={this.classesSets
-                                    }
+                                    classesSets={this.classesSets}
                                 />
-                                <div
-                                    className="vflex grow relative">
-                                    <div
-                                        className="hflex grow">
+                                <div className="vflex grow relative">
+                                    <div className="hflex grow">
                                         <div
                                             id="canvasContainer"
                                             className="grow relative">
@@ -109,8 +97,7 @@ export default class SseApp3d extends React.Component {
                                             <div
                                                 id="waiting"
                                                 className="hflex flex-align-items-center absolute w100 h100">
-                                                < div
-                                                    className="grow vflex flex-align-items-center">
+                                                <div className="grow vflex flex-align-items-center">
                                                     <Autorenew/>
                                                 </div>
                                             </div>
@@ -119,7 +106,6 @@ export default class SseApp3d extends React.Component {
                                     </div>
                                     <SseObjectToolbar/>
                                 </div>
-
                             </div>
                             <SseBottomBar allTags={this.state.allTags}/>
                         </div>
@@ -131,12 +117,9 @@ export default class SseApp3d extends React.Component {
                             text="This will remove all existing polygons and tags, are you sure?">
                         </SseConfirmationDialog>
                     </div>
-                </MuiThemeProvider>
+                </MuiThemeProvider> 
             </div>
-        );
+        )
+            ;
     }
 }
-
-
-
-

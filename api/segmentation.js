@@ -18,18 +18,18 @@ export function getImageInfoDetail(imageId){
 }
 
 
-export function detailSaveResult(taskCommitDto, urlType){
+export function postCloudDataDetail(imageId, cloudData){
     return request({
-        url: `${baseUrl}/sm/${urlType}/save-result`,
+        url: `${baseUrl}/image/${imageId}/cloud/data/`,
         method: "POST",
-        data: taskCommitDto,
+        data: {cloudData: cloudData},
     })
 }
 
 
-export function commitSaveResult(imageId, objectData){
+export function postObjectDataDetail(imageId, objectData){
     return request({
-        url: `${baseUrl}/image/${imageId}/commit`,
+        url: `${baseUrl}/image/${imageId}/object/data/`,
         method: "POST",
         data: {objectData: objectData},
     })
